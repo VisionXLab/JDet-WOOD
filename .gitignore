@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Editors and local credentials
+.idea/
+.vscode/
+*.swp
+.secrets/
+
+# Training and evaluation outputs
+work_dir/
+work_dirs/
+logs/
+submit_zips/
+exp/
+exp_*/
+temp/
+tmp/
+*.log
+*.zip
+
+# Model and generated data artifacts
+weights/
+*.pkl
+*.pk
+*.pth
+sam_cache/
+tests/data/*.npz
+projects/*/test_datas*/
+
+# Platform metadata
+.DS_Store
