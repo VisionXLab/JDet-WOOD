@@ -232,7 +232,11 @@ def mergesingle(dstpath, nms, fullname):
 
             pattern2 = re.compile(r'__([\d+\.]+)__\d+___')
 
-            rate = re.findall(pattern2, subname)[0]
+            rate = float(re.findall(pattern2, subname)[0])
+            # Recovered DOTA splits use ``name__1024__x___y`` where the
+            # middle field is a tile size, not an image scaling ratio.
+            if rate > 16:
+                rate = 1.0
 
             confidence = splitline[1]
             poly = list(map(float, splitline[2:]))

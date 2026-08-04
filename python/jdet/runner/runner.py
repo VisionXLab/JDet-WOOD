@@ -237,7 +237,13 @@ class Runner:
         # Point2RBox heads use ``images`` only as a per-step loss cache.  A
         # Jittor Var assigned to a Module attribute is otherwise mistaken for
         # persistent model state (and can add a whole image batch to a ckpt).
-        runtime_cache_suffixes = ('.images', '.edges', '.vis')
+        runtime_cache_suffixes = (
+            '.images', '.edges', '.vis',
+            # Deterministic EdgeLoss constructor constants. Older v2
+            # checkpoints may contain AdamW-decayed copies; reconstruct them.
+            '.loss_bbox_edg.edge_idx',
+            '.loss_bbox_edg.edge_distribution',
+        )
         model_state = {k: v for k, v in model_state.items()
                        if not k.endswith(runtime_cache_suffixes)}
         save_data = {
@@ -282,7 +288,11 @@ class Runner:
         # ``bbox_head.images: None``.  It is not a trainable/model state and
         # load_parameters rejects None values, so discard such cache entries.
         if isinstance(model_state, dict):
-            runtime_cache_suffixes = ('.images', '.edges', '.vis')
+            runtime_cache_suffixes = (
+                '.images', '.edges', '.vis',
+                '.loss_bbox_edg.edge_idx',
+                '.loss_bbox_edg.edge_distribution',
+            )
             model_state = {k: v for k, v in model_state.items()
                            if v is not None
                            and not k.endswith(runtime_cache_suffixes)}

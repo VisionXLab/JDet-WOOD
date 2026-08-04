@@ -4,6 +4,7 @@ golden 来源：
     lr_sequence.npz  <- tools/dump_lr_mmengine.py（p2r-torch 环境）
 """
 import os
+import tempfile
 
 import numpy as np
 import pytest
@@ -306,3 +307,32 @@ class TestDiffIoURotated:
             per = np.linalg.norm(grad - want, axis=1) \
                 / (np.linalg.norm(want, axis=1) + 1e-9)
             assert per[1:].max() < 1e-3, f'nondegenerate max rel = {per[1:].max()}'
+
+
+class TestOptimizerCheckpoint:
+    def test_adamw_resume_preserves_moments(self):
+        """A resumed second update must equal two uninterrupted updates."""
+        import jittor as jt
+        from jdet.optims.optimizer import AdamW
+
+        p = jt.array(np.asarray([1.5, -0.7], np.float32))
+        opt = AdamW([p], lr=3e-4, betas=(0.9, 0.999),
+                    weight_decay=0.05)
+        opt.step(((p - jt.array([0.2, -0.1])) ** 2).sum())
+        p_after_one = p.numpy().copy()
+
+        with tempfile.NamedTemporaryFile(suffix='.pkl') as f:
+            jt.save(opt.parameters(), f.name)
+            saved_state = jt.load(f.name)
+
+        opt.step(((p - jt.array([-0.3, 0.4])) ** 2).sum())
+        expected = p.numpy().copy()
+
+        resumed_p = jt.array(p_after_one)
+        resumed = AdamW([resumed_p], lr=3e-4, betas=(0.9, 0.999),
+                        weight_decay=0.05)
+        resumed.load_parameters(saved_state)
+        resumed.step(((resumed_p - jt.array([-0.3, 0.4])) ** 2).sum())
+        np.testing.assert_allclose(resumed_p.numpy(), expected,
+                                   rtol=1e-7, atol=1e-8)
+        assert resumed.n_step == opt.n_step == 2

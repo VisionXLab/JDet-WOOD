@@ -131,6 +131,11 @@ def get_single_pattern(image, bbox, label, square_cls):
     theta[:, :2] = theta[:, :2] @ np.float32([[sx, 0], [0, sy]])
     grid = nn.affine_grid(jt.array(theta)[None], (1, 1, sy, sx), align_corners=True)
     chip = nn.grid_sample(chip[None], grid, mode='nearest', align_corners=True)[0]
+    # PyTorch fills this cache eagerly. Materialize it before returning so
+    # Jittor does not retain the previous dataloader image graph until the
+    # next iteration.
+    chip = chip.detach()
+    chip.sync()
     bbox = np.float32([sx / 2, sy / 2, w_, h_, t_])
     return (chip, bbox, label)
 

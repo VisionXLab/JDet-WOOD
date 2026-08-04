@@ -170,6 +170,25 @@ class TestVoronoiWatershedLoss:
 
 
 class TestEdgeLoss:
+    def test_buffers_are_frozen_under_adamw(self):
+        """Torch register_buffer constants must never receive weight decay."""
+        import jittor as jt
+        from jdet.models.losses.point2rbox_v2_loss import EdgeLoss
+
+        loss_fn = EdgeLoss(loss_weight=0.3)
+        assert loss_fn.edge_idx.is_stop_grad()
+        assert loss_fn.edge_distribution.is_stop_grad()
+        before_idx = loss_fn.edge_idx.numpy().copy()
+        before_dist = loss_fn.edge_distribution.numpy().copy()
+
+        dummy = jt.array([1.0])
+        opt = jt.optim.AdamW([dummy] + loss_fn.parameters(), lr=5e-5,
+                             weight_decay=0.05)
+        opt.step((dummy * dummy).sum())
+        np.testing.assert_array_equal(loss_fn.edge_idx.numpy(), before_idx)
+        np.testing.assert_array_equal(loss_fn.edge_distribution.numpy(),
+                                      before_dist)
+
     def test_forward_grad(self):
         import jittor as jt
         from jdet.models.losses.point2rbox_v2_loss import EdgeLoss
